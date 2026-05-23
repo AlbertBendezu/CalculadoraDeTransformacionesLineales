@@ -29,7 +29,7 @@ class Transformador:
 
     def rotar(self, angulo, sentido):
         match sentido:
-            case "antihorario":
+            case "Antihorario":
                 ang = angulo
             case _:
                 ang = -angulo
