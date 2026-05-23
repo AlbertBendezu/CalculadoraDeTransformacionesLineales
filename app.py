@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-
+import time
 
 class Transformador:
     def __init__(self, figura, figuraFinal, tipoTrans):
@@ -65,20 +65,99 @@ class Transformador:
                 return self.getFiguraFinal()
         return self.getFiguraFinal() @ matriz.T
 
-
 st.set_page_config(page_title="Calculadora", layout="wide")
-st.title("Calculadora de transformaciones lineales en R²", anchor=False)
-st.divider()
+
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #06142E 0%, #0B1F3A 55%, #111827 100%);
+    color: white;
+}
+[data-testid="stHeader"] {
+    background-color: rgba(6, 20, 46, 0);
+}
+h1, h2, h3 {
+    color: #00E5FF;
+    font-weight: 800;
+}
+p, label, span, div {
+    color: white;
+}
+.titulo-principal {
+    background: linear-gradient(90deg, #00E5FF, #7C3AED);
+    padding: 22px;
+    border-radius: 18px;
+    text-align: center;
+    margin-bottom: 25px;
+    box-shadow: 0px 0px 25px rgba(0, 229, 255, 0.25);
+}
+.titulo-principal h1 {
+    color: white;
+    margin: 0;
+    font-size: 38px;
+}
+.cabecera-seccion {
+    background-color: rgba(17, 24, 39, 0.92);
+    border: 1px solid #00E5FF;
+    border-radius: 18px;
+    box-shadow: 0px 0px 18px rgba(0, 229, 255, 0.18);
+    color: white;
+    font-weight: bold;
+    font-size: 1.15rem;
+    padding: 15px 22px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.stTextInput input {
+    background-color: #0F172A;
+    color: white;
+    border: 1px solid #00E5FF;
+    border-radius: 10px;
+}
+.stTextInput input:focus {
+    border: 2px solid #7C3AED;
+}
+.stButton button {
+    border-radius: 12px;
+    border: 1px solid #00E5FF;
+    background-color: #111827;
+    color: white;
+    font-weight: bold;
+    height: 45px;
+}
+.stButton button:hover {
+    background-color: #00E5FF;
+    color: #06142E;
+    border: 1px solid white;
+}
+hr {
+    border: 1px solid #00E5FF;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="titulo-principal">
+    <h1>Calculadora de transformaciones lineales en R²</h1>
+</div>
+""", unsafe_allow_html=True)
+
 if "logica" not in st.session_state:
     st.session_state.logica = Transformador(None, None, None)
 if "historial" not in st.session_state:
     st.session_state.historial = []
+if "animar" not in st.session_state:
+    st.session_state.animar = False
+    
+if "zoomEstado" not in st.session_state:
+    st.session_state.zoomEstado = 0
 
 columnaIzq, columnaDer = st.columns([1, 2])
 
 with columnaIzq:
 
-    st.subheader("Elige la cantidad de puntos de tu figura", anchor=False)
+    st.markdown('<div class="cabecera-seccion">Elige la cantidad de puntos de tu figura</div>', unsafe_allow_html=True)
+    
     puntosF = st.radio(
         label="oculto",
         options=[3, 4, 5, 6],
@@ -113,7 +192,6 @@ with columnaIzq:
         colLetra, colX, colY = st.columns([1, 1, 1])
 
         with colLetra:
-
             st.write(f"Punto {letra}")
 
         with colX:
@@ -131,20 +209,26 @@ with columnaIzq:
                 st.error("No es un numero valido")
 
     if len(puntosValidados) == puntosF:
-
         figuraCerrada = puntosValidados + [puntosValidados[0]]
         matriz = np.array(figuraCerrada)
 
-        if len(st.session_state.historial) == 0:
+        figura_guardada = st.session_state.logica.getFigura()
+        
+        if figura_guardada is None or not np.array_equal(matriz, figura_guardada):
             st.session_state.logica.setFigura(matriz)
             st.session_state.logica.setFiguraFinal(matriz)
-    else:
-        if len(st.session_state.historial) == 0:
-            st.session_state.logica.setFigura(None)
-            st.session_state.logica.setFiguraFinal(None)
+            st.session_state.historial = [] 
+            st.session_state.zoomEstado += 1 
 
-    st.divider()
-    st.subheader("Elige el tipo de transformación:", anchor=False)
+    else:
+        if st.session_state.logica.getFigura() is not None:
+            st.session_state.zoomEstado += 1
+            
+        st.session_state.logica.setFigura(None)
+        st.session_state.logica.setFiguraFinal(None)
+        st.session_state.historial = []
+
+    st.markdown('<div class="cabecera-seccion">Elige el tipo de transformación:</div>', unsafe_allow_html=True)
 
     transformacionesF = st.radio(
         label="oculto2",
@@ -161,7 +245,7 @@ with columnaIzq:
     match transformacionesF:
         case "Rotación":
             st.write("Ingrese el ángulo de rotación :")
-            st.info("El angulo debe estar entre 0 y 360 grados")
+            st.info("El angulo debe ser mayor a 0 y menor a 360 grados")
 
             colAng1, colAng2 = st.columns([1, 2])
 
@@ -173,8 +257,8 @@ with columnaIzq:
             if inputAngulo:
                 try:
                     numAngulo = int(inputAngulo)
-                    if numAngulo < 0 or numAngulo > 360:
-                        st.error("No esta dentro del limite")
+                    if numAngulo <= 0 or numAngulo >= 360:
+                        st.error("El angulo no esta dentro del limite")
                     else:
                         anguloV = numAngulo
                 except ValueError:
@@ -187,7 +271,6 @@ with columnaIzq:
             )
 
         case "Escalado":
-
             st.write("Ingresa el numero al que la figura sera escalada:")
             st.info("Solo usa enteros positivos")
             colK1, colK2 = st.columns([1, 2])
@@ -213,7 +296,7 @@ with columnaIzq:
                 label_visibility="collapsed",
                 horizontal=True,
             )
-
+    
     st.write("")
 
     cb1, cb2, cb3 = st.columns(3)
@@ -238,106 +321,114 @@ with columnaIzq:
                         if anguloV is not None:
                             nueva = st.session_state.logica.rotar(anguloV, sentidoV)
                             st.session_state.logica.setFiguraFinal(nueva)
+                            st.session_state.animar = True
                     case "Escalado":
                         if escaladoV is not None:
                             nueva = st.session_state.logica.homotecia(escaladoV)
                             st.session_state.logica.setFiguraFinal(nueva)
+                            st.session_state.animar = True
                     case "Reflexión":
                         if ejeV is not None:
                             nueva = st.session_state.logica.reflejar(ejeV)
                             st.session_state.logica.setFiguraFinal(nueva)
+                            st.session_state.animar = True
 
     with cb3:
         if st.button("Reiniciar todas las transformaciones", use_container_width=True):
             st.session_state.logica.setFigura(None)
             st.session_state.logica.setFiguraFinal(None)
             st.session_state.historial = []
+            st.session_state.zoomEstado += 1 
             st.rerun()
 
+def aplicarDis(grafico):
+        grafico.add_trace(go.Scatter(
+            x=[-200, 200], y=[-200, 200], 
+            mode="markers", marker=dict(color="rgba(0,0,0,0)"), 
+            showlegend=False, hoverinfo="skip"
+        ))
+        
+        grafico.update_layout(
+            uirevision=st.session_state.zoomEstado, 
+            showlegend=True,
+            legend=dict(
+                yanchor="top", y=0.99,
+                xanchor="left", x=0.01,
+                bgcolor="rgba(17, 24, 39, 0.7)", bordercolor="#00E5FF", borderwidth=1, font=dict(color="white")
+            ),
+            plot_bgcolor="#06142E", paper_bgcolor="#06142E", font=dict(color="white"), dragmode="pan",
+            
+            xaxis=dict(zeroline=True, zerolinewidth=3, zerolinecolor="#00E5FF", showgrid=True, gridcolor="#243B55", color="white", tickfont=dict(color="white")),
+            yaxis=dict(zeroline=True, zerolinewidth=3, zerolinecolor="#00E5FF", showgrid=True, gridcolor="#243B55", color="white", tickfont=dict(color="white"), scaleanchor="x", scaleratio=1),
+            height=700, margin=dict(l=10, r=10, t=10, b=10)
+        )
+        return grafico
+
+def inAnimacion(an, fig_inicio, fig_final, fig_original, config_botones):
+    frames = 10
+        
+    for i in range(frames + 1):
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatter(x=fig_original[:, 0], y=fig_original[:, 1], mode="lines+markers", name="Forma inicial", line=dict(color="#8B5CF6", width=2)))
+        
+        figTemp = fig_inicio + (fig_final - fig_inicio) * (i / frames)
+        
+        if i == frames:
+            nEstado = "Figura final"
+        else:
+            nEstado = "Transformando...."
+            
+        fig.add_trace(go.Scatter(x=figTemp[:, 0], y=figTemp[:, 1], mode="lines+markers", name=nEstado, line=dict(color="#FFB703", width=3)))
+        
+        fig = aplicarDis(fig)
+        an.plotly_chart(fig, use_container_width=True, config=config_botones)
+        time.sleep(0.08)
+
 with columnaDer:
-    fig = go.Figure()
+
+    st.markdown('<div class="cabecera-seccion">Plano Cartesiano</div>', unsafe_allow_html=True)
+
+    animacionTotal = st.empty()
+
+    botPlanoCarte = {
+        "modeBarButtonsToRemove": [
+            "lasso2d", "select2d", "autoScale2d", "resetScale2d",
+            "hoverClosestCartesian", "hoverCompareCartesian",
+            "toggleSpikelines", "toImage", "pan2d", "zoom2d",
+        ],
+        "displaylogo": False,
+    }
 
     figOriginal = st.session_state.logica.getFigura()
     figFinal = st.session_state.logica.getFiguraFinal()
 
     if figOriginal is None and len(puntosValidados) > 0:
+        fig = go.Figure()
         ptsArray = np.array(puntosValidados)
-        fig.add_trace(
-            go.Scatter(
-                x=ptsArray[:, 0],
-                y=ptsArray[:, 1],
-                mode="markers",
-                name="puntosss",
-                marker=dict(color="blue", size=10),
-            )
-        )
+        fig.add_trace(go.Scatter(x=ptsArray[:, 0], y=ptsArray[:, 1], mode="markers", name="Ingresando puntos", marker=dict(color="#00E5FF", size=10)))
+        fig = aplicarDis(fig)
+        animacionTotal.plotly_chart(fig, use_container_width=True, config=botPlanoCarte)
 
-    if figOriginal is not None:
-        fig.add_trace(
-            go.Scatter(
-                x=figOriginal[:, 0],
-                y=figOriginal[:, 1],
-                mode="lines+markers",
-                name="forma inicial",
-                line=dict(color="blue", width=2),
-            )
-        )
+    elif figFinal is not None and len(st.session_state.historial) > 0:
+        if st.session_state.animar:
+            figInicio = st.session_state.historial[-1] 
+            inAnimacion(animacionTotal, figInicio, figFinal, figOriginal, botPlanoCarte)
+            st.session_state.animar = False
+        else:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=figOriginal[:, 0], y=figOriginal[:, 1], mode="lines+markers", name="Forma inicial", line=dict(color="#8B5CF6", width=2)))
+            fig.add_trace(go.Scatter(x=figFinal[:, 0], y=figFinal[:, 1], mode="lines+markers", name="Figura final", line=dict(color="#FFB703", width=3)))
+            fig = aplicarDis(fig)
+            animacionTotal.plotly_chart(fig, use_container_width=True, config=botPlanoCarte)
 
-    if figFinal is not None and len(st.session_state.historial) > 0:
-        fig.add_trace(
-            go.Scatter(
-                x=figFinal[:, 0],
-                y=figFinal[:, 1],
-                mode="lines+markers",
-                name="figura resultado",
-                line=dict(color="orange", width=3),
-            )
-        )
-
-    fig.update_layout(
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        dragmode="pan",
-        xaxis=dict(
-            range=[-200, 200],
-            zeroline=True,
-            zerolinewidth=2,
-            zerolinecolor="black",
-            showgrid=True,
-            gridcolor="#d4d4d4",
-            color="black",
-            tickfont=dict(color="black"),
-        ),
-        yaxis=dict(
-            range=[-200, 200],
-            zeroline=True,
-            zerolinewidth=2,
-            zerolinecolor="black",
-            showgrid=True,
-            gridcolor="#d4d4d4",
-            color="black",
-            tickfont=dict(color="black"),
-            scaleanchor="x",
-            scaleratio=1,
-        ),
-        height=700,
-        margin=dict(l=10, r=10, t=10, b=10),
-    )
-
-    botPlanoCarte = {
-        "modeBarButtonsToRemove": [
-            "lasso2d",
-            "select2d",
-            "autoScale2d",
-            "resetScale2d",
-            "hoverClosestCartesian",
-            "hoverCompareCartesian",
-            "toggleSpikelines",
-            "toImage",
-            "pan2d",
-            "zoom2d",
-        ],
-        "displaylogo": False,
-    }
-
-    st.plotly_chart(fig, use_container_width=True, config=botPlanoCarte)
+    elif figOriginal is not None:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=figOriginal[:, 0], y=figOriginal[:, 1], mode="lines+markers", name="Forma inicial", line=dict(color="#8B5CF6", width=3)))
+        fig = aplicarDis(fig)
+        animacionTotal.plotly_chart(fig, use_container_width=True, config=botPlanoCarte)
+        
+    else:
+        fig = go.Figure()
+        fig = aplicarDis(fig)
+        animacionTotal.plotly_chart(fig, use_container_width=True, config=botPlanoCarte)
