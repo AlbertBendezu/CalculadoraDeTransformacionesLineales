@@ -41,20 +41,20 @@ class Transformador:
     def homotecia(self, k):
         puntosF = self.getFiguraFinal()
 
-        coord_k = puntosF[:-1]
-        cX = np.mean(coord_k[:, 0])
-        cY = np.mean(coord_k[:, 1])
+        coordK = puntosF[:-1]
+        cX = np.mean(coordK[:, 0])
+        cY = np.mean(coordK[:, 1])
 
-        coord_centro = np.array([cX, cY])
+        coordCentro = np.array([cX, cY])
 
-        coord_k2 = puntosF - coord_centro
+        coordK2 = puntosF - coordCentro
         matriz = np.array([[k, 0], [0, k]])
-        coord_escalado = coord_k2 @ matriz.T
+        coordEscalado = coordK2 @ matriz.T
 
-        return coord_escalado + coord_centro
+        return coordEscalado + coordCentro
 
-    def reflejar(self, ref_op):
-        match ref_op:
+    def reflejar(self, refOp):
+        match refOp:
             case "Eje x":
                 matriz = np.array([[1, 0], [0, -1]])
             case "Eje y":
@@ -261,11 +261,11 @@ with columnaDer:
     figFinal = st.session_state.logica.getFiguraFinal()
 
     if figOriginal is None and len(puntosValidados) > 0:
-        pts_array = np.array(puntosValidados)
+        ptsArray = np.array(puntosValidados)
         fig.add_trace(
             go.Scatter(
-                x=pts_array[:, 0],
-                y=pts_array[:, 1],
+                x=ptsArray[:, 0],
+                y=ptsArray[:, 1],
                 mode="markers",
                 name="puntosss",
                 marker=dict(color="blue", size=10),
